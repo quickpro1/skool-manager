@@ -1,93 +1,187 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Users, GraduationCap, UserX, TrendingUp } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function Classes() {
-  const [classes, setClasses] = useState<any[]>([]);
-  const [teachers, setTeachers] = useState<any[]>([]);
-  const [nom, setNom] = useState("");
-  const [niveau, setNiveau] = useState("");
-  const [teacherId, setTeacherId] = useState("");
+const revenueData = [
+  { mois: "يناير", مداخيل: 4200 },
+  { mois: "فبراير", مداخيل: 3800 },
+  { mois: "مارس", مداخيل: 5100 },
+  { mois: "أبريل", مداخيل: 4700 },
+  { mois: "ماي", مداخيل: 5300 },
+  { mois: "يونيو", مداخيل: 4900 },
+];
 
-  const fetchClasses = async () => {
-    const { data } = await supabase.from("classes").select("*");
-    if (data) setClasses(data);
-  };
+export default function Dashboard() {
+  const [stats, setStats] = useState({ students: 0, teachers: 0, absences: 0 });
+  const [activities, setActivities] = useState<any[]>([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  const fetchTeachers = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("role", "teacher");
-    if (data) setTeachers(data);
-  };
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-  useEffect(() => { fetchClasses(); fetchTeachers(); }, []);
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { count: studentsCount } = await supabase
+        .from("Students").select("*", { count: "exact", head: true });
 
-  const addClass = async () => {
-    if (!nom || !niveau) return;
-    await supabase.from("classes").insert([{
-      nom,
-      niveau,
-      teacher_id: teacherId || null
-    }]);
-    setNom(""); setNiveau(""); setTeacherId("");
-    fetchClasses();
-  };
+      const { count: teachersCount } = await supabase
+        .from("profiles").select("*", { count: "exact", head: true })
+        .eq("role", "teacher");
+
+      const today = new Date().toISOString().split("T")[0];
+      const { count: absencesCount } = await supabase
+        .from("absences").select("*", { count: "exact", head: true })
+        .eq("date", today);
+
+      setStats({
+        students: studentsCount || 0,
+        teachers: teachersCount || 0,
+        absences: absencesCount || 0,
+      });
+
+      const { data: absData } = await supabase
+        .from("absences").select("*").order("created_at", { ascending: false }).limit(5);
+
+      setActivities(absData || []);
+    };
+
+    fetchStats();
+  }, []);
+
+  const formatDate = (date: Date) =>
+    date.toLocaleDateString("ar-MA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString("ar-MA");
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-indigo-700 text-white px-8 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">🏫 الأقسام</h1>
-        <a href="/dashboard" className="text-indigo-200 hover:text-white">← رجوع</a>
-      </div>
-      <div className="p-8">
-        <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h2 className="text-xl font-bold text-indigo-700 mb-4 text-right">إضافة قسم جديد</h2>
-          <div className="grid grid-cols-3 gap-4">
-            <input placeholder="اسم القسم (مثال: 6 أ)" value={nom} onChange={e => setNom(e.target.value)}
-              className="border rounded-xl px-4 py-2 text-right" />
-            <input placeholder="المستوى (مثال: 6 ابتدائي)" value={niveau} onChange={e => setNiveau(e.target.value)}
-              className="border rounded-xl px-4 py-2 text-right" />
-            <select value={teacherId} onChange={e => setTeacherId(e.target.value)}
-              className="border rounded-xl px-4 py-2 text-right">
-              <option value="">اختار الأستاذ</option>
-              {teachers.map(t => (
-                <option key={t.id} value={t.id}>{t.nom} {t.prenom}</option>
-              ))}
-            </select>
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 text-white px-8 py-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="text-right">
+            <h1 className="text-3xl font-bold">🏫 Skool Manager</h1>
+            <p className="text-indigo-200 mt-1">مرحباً بك، المدير</p>
           </div>
-          <button onClick={addClass}
-            className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-xl">
-            إضافة
-          </button>
+          <div className="text-right">
+            <p className="text-indigo-200 text-sm">{formatDate(currentTime)}</p>
+            <p className="text-white text-2xl font-bold">{formatTime(currentTime)}</p>
+          </div>
         </div>
-        <div className="bg-white rounded-2xl shadow overflow-hidden">
-          <table className="w-full text-right">
-            <thead className="bg-indigo-50">
-              <tr>
-                <th className="px-6 py-3 text-indigo-700">اسم القسم</th>
-                <th className="px-6 py-3 text-indigo-700">المستوى</th>
-                <th className="px-6 py-3 text-indigo-700">الأستاذ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {classes.map((c) => (
-                <tr key={c.id} className="border-t">
-                  <td className="px-6 py-3 font-bold text-indigo-600">{c.nom}</td>
-                  <td className="px-6 py-3">{c.niveau}</td>
-                  <td className="px-6 py-3">
-                    {teachers.find(t => t.id === c.teacher_id)?.nom || "غير محدد"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-8 py-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-2xl shadow p-6 flex items-center gap-4">
+            <div className="bg-indigo-100 p-3 rounded-xl">
+              <GraduationCap className="text-indigo-600 w-7 h-7" />
+            </div>
+            <div className="text-right">
+              <p className="text-gray-500 text-sm">إجمالي التلاميذ</p>
+              <p className="text-3xl font-bold text-indigo-700">{stats.students}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl shadow p-6 flex items-center gap-4">
+            <div className="bg-green-100 p-3 rounded-xl">
+              <Users className="text-green-600 w-7 h-7" />
+            </div>
+            <div className="text-right">
+              <p className="text-gray-500 text-sm">الأساتذة</p>
+              <p className="text-3xl font-bold text-green-700">{stats.teachers}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl shadow p-6 flex items-center gap-4">
+            <div className="bg-red-100 p-3 rounded-xl">
+              <UserX className="text-red-600 w-7 h-7" />
+            </div>
+            <div className="text-right">
+              <p className="text-gray-500 text-sm">غياب اليوم</p>
+              <p className="text-3xl font-bold text-red-700">{stats.absences}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl shadow p-6 flex items-center gap-4">
+            <div className="bg-yellow-100 p-3 rounded-xl">
+              <TrendingUp className="text-yellow-600 w-7 h-7" />
+            </div>
+            <div className="text-right">
+              <p className="text-gray-500 text-sm">مداخيل الشهر</p>
+              <p className="text-3xl font-bold text-yellow-700">5,300 د</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Bar Chart */}
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow p-6">
+            <h2 className="text-xl font-bold text-slate-700 text-right mb-4">📈 مقارنة المداخيل الشهرية</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mois" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="مداخيل" fill="#4f46e5" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Recent Activities */}
+          <div className="bg-white rounded-2xl shadow p-6">
+            <h2 className="text-xl font-bold text-slate-700 text-right mb-4">🔔 آخر التنبيهات</h2>
+            {activities.length === 0 ? (
+              <p className="text-gray-400 text-center mt-8">لا تنبيهات حالياً</p>
+            ) : (
+              <ul className="space-y-3">
+                {activities.map((a) => (
+                  <li key={a.id} className="flex items-center gap-3 border-b pb-3">
+                    <div className="bg-red-100 p-2 rounded-lg">
+                      <UserX className="text-red-500 w-4 h-4" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-slate-700">غياب مسجل</p>
+                      <p className="text-xs text-gray-400">{a.date}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-2xl shadow p-6">
+          <h2 className="text-xl font-bold text-slate-700 text-right mb-4">⚡ إجراءات سريعة</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <a href="/students" className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-3 px-4 rounded-xl text-center transition">
+              👨‍🎓 التلاميذ
+            </a>
+            <a href="/absences" className="bg-red-50 hover:bg-red-100 text-red-700 font-bold py-3 px-4 rounded-xl text-center transition">
+              📋 الغياب
+            </a>
+            <a href="/grades" className="bg-green-50 hover:bg-green-100 text-green-700 font-bold py-3 px-4 rounded-xl text-center transition">
+              📊 النقط
+            </a>
+            <a href="/classes" className="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-bold py-3 px-4 rounded-xl text-center transition">
+              🏫 الأقسام
+            </a>
+            <a href="/users" className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-3 px-4 rounded-xl text-center transition">
+              👥 المستخدمين
+            </a>
+            <a href="/messages" className="bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-3 px-4 rounded-xl text-center transition">
+              💬 الرسائل
+            </a>
+          </div>
         </div>
       </div>
     </div>

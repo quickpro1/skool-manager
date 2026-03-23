@@ -13,9 +13,24 @@ export default function Home() {
   const [error, setError] = useState("");
 
   const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setError("إيميل أو كلمة السر غلط!");
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .single();
+
+    if (profile?.role === "admin") {
+      window.location.href = "/dashboard";
+    } else if (profile?.role === "teacher") {
+      window.location.href = "/teacher";
+    } else if (profile?.role === "parent") {
+      window.location.href = "/parent";
     } else {
       window.location.href = "/dashboard";
     }

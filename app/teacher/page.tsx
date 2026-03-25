@@ -106,7 +106,7 @@ export default function Teacher() {
             </button>
 
             {/* Center: Title */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1, justifyContent: "center" }}>
               <div style={{ width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: darkMode ? "rgba(163,230,53,0.12)" : "#f0faf5", border: darkMode ? "1px solid rgba(163,230,53,0.2)" : "none", boxShadow: darkMode ? "0 0 12px rgba(163,230,53,0.3)" : "0 2px 6px rgba(0,0,0,0.06)" }}>
                 <GraduationCap size={18} color={th.accent} />
               </div>

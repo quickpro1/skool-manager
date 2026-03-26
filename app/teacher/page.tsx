@@ -63,16 +63,22 @@ export default function Teacher() {
   useEffect(() => {
     const fetchData = async () => {
       const { data: userData } = await supabase.auth.getUser();
-      setUser(userData.user);
-      if (userData.user) {
-        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", userData.user.id).single();
-        setProfile(profileData);
-        const { count: absencesCount } = await supabase.from("absences").select("*", { count: "exact", head: true });
-        const { count: gradesCount } = await supabase.from("grades").select("*", { count: "exact", head: true });
-        const { count: messagesCount } = await supabase.from("messages").select("*", { count: "exact", head: true })
-          .or("sender_id.eq." + userData.user.id + ",receiver_id.eq." + userData.user.id);
-        setStats({ absences: absencesCount || 0, grades: gradesCount || 0, messages: messagesCount || 0 });
+      if (!userData.user) { window.location.href = "/"; return; }
+
+      const { data: profileData } = await supabase.from("profiles").select("*").eq("id", userData.user.id).single();
+      if (profileData?.role !== "teacher" && profileData?.role !== "admin") {
+        window.location.href = "/";
+        return;
       }
+
+      setUser(userData.user);
+      setProfile(profileData);
+
+      const { count: absencesCount } = await supabase.from("absences").select("*", { count: "exact", head: true });
+      const { count: gradesCount } = await supabase.from("grades").select("*", { count: "exact", head: true });
+      const { count: messagesCount } = await supabase.from("messages").select("*", { count: "exact", head: true })
+        .or("sender_id.eq." + userData.user.id + ",receiver_id.eq." + userData.user.id);
+      setStats({ absences: absencesCount || 0, grades: gradesCount || 0, messages: messagesCount || 0 });
     };
     fetchData();
   }, []);
@@ -99,21 +105,15 @@ export default function Teacher() {
         {/* Header */}
         <div style={{ ...th.card, padding: "16px 20px", marginBottom: "24px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-
-            {/* Start: Logout */}
             <button onClick={handleLogout} style={{ ...th.btn, padding: "8px 14px", display: "flex", alignItems: "center", gap: "6px", border: "none", cursor: "pointer", color: darkMode ? "#f87171" : "#e05c5c", fontWeight: "700", fontSize: "13px", fontFamily: "'Cairo', sans-serif", flexShrink: 0 }}>
               <LogOut size={15} /> {t("logout")}
             </button>
-
-            {/* Center: Title */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1, justifyContent: "center" }}>
               <div style={{ width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: darkMode ? "rgba(163,230,53,0.12)" : "#f0faf5", border: darkMode ? "1px solid rgba(163,230,53,0.2)" : "none", boxShadow: darkMode ? "0 0 12px rgba(163,230,53,0.3)" : "0 2px 6px rgba(0,0,0,0.06)" }}>
                 <GraduationCap size={18} color={th.accent} />
               </div>
               <h1 style={{ fontSize: "18px", fontWeight: "800", color: th.title, textShadow: th.titleShadow, whiteSpace: "nowrap" }}>{t("teacherBoard")}</h1>
             </div>
-
-            {/* End: Controls */}
             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
               <button onClick={() => setDarkMode(!darkMode)} style={{ ...th.btn, width: "38px", height: "38px", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", transition: "all 0.3s" }}>
                 <div style={{ transition: "transform 0.5s", transform: darkMode ? "rotate(360deg)" : "rotate(0deg)" }}>

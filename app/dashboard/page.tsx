@@ -60,6 +60,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchAll = async () => {
+      // حماية — فقط المدير
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) { window.location.href = "/"; return; }
+      const { data: profileData } = await supabase.from("profiles").select("role").eq("id", userData.user.id).single();
+      if (profileData?.role === "teacher") { window.location.href = "/teacher"; return; }
+      if (profileData?.role === "parent") { window.location.href = "/parent"; return; }
+
       const { count: studentsCount } = await supabase.from("Students").select("*", { count: "exact", head: true });
       const { count: teachersCount } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "teacher");
       const today = new Date().toISOString().split("T")[0];
@@ -197,7 +204,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Search */}
           <div style={{ position: "relative" }}>
             <div style={{ ...th.inset, padding: "12px 16px", display: "flex", alignItems: "center", gap: "10px" }}>
               <Search size={17} color={th.subtext} style={{ flexShrink: 0 }} />
@@ -220,8 +226,7 @@ export default function Dashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
           {statsCards.map((card, i) => (
-            <div key={i}
-              style={{ ...th.card, padding: "20px", cursor: "pointer", transition: "all 0.25s", ...(pressedCard === i && darkMode ? { boxShadow: "0 0 28px " + card.glow } : {}), ...(pressedCard === i && !darkMode ? th.btnPressed : {}) }}
+            <div key={i} style={{ ...th.card, padding: "20px", cursor: "pointer", transition: "all 0.25s", ...(pressedCard === i && darkMode ? { boxShadow: "0 0 28px " + card.glow } : {}), ...(pressedCard === i && !darkMode ? th.btnPressed : {}) }}
               onMouseDown={() => setPressedCard(i)} onMouseUp={() => setPressedCard(null)} onMouseLeave={() => setPressedCard(null)}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", textAlign: "center" }}>
                 <div style={{ width: "46px", height: "46px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: card.bg, border: card.border, boxShadow: darkMode ? "0 0 16px " + card.glow : "0 2px 8px rgba(0,0,0,0.06)" }}>
@@ -288,12 +293,10 @@ export default function Dashboard() {
         {/* Monthly Tuition Tracker */}
         <div style={{ ...th.card, padding: "24px", marginBottom: "22px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-            {/* العنوان دايما فالبداية — dir كيهضر عليه */}
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <DollarSign size={18} color={darkMode ? "#fbbf24" : "#e8a838"} style={darkMode ? { filter: "drop-shadow(0 0 8px rgba(251,191,36,0.5))" } : {}} />
               <h2 style={{ fontWeight: "800", color: th.title, fontSize: "16px", textShadow: th.titleShadow }}>{t("monthlyTracker")}</h2>
             </div>
-            {/* Badge فالنهاية */}
             <span style={{ fontSize: "12px", fontWeight: "600", color: th.subtext, background: darkMode ? "rgba(34,211,238,0.1)" : "#eff4ff", padding: "4px 10px", borderRadius: "20px", border: darkMode ? "1px solid rgba(34,211,238,0.2)" : "none" }}>
               {students.length} {t("totalStudents")}
             </span>
@@ -312,12 +315,10 @@ export default function Dashboard() {
                 const isExpanded = expandedRow === student.id;
                 return (
                   <div key={student.id}>
-                    <div
-                      style={{ ...th.row, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "all 0.2s" }}
+                    <div style={{ ...th.row, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "all 0.2s" }}
                       onClick={() => statut === "جزئي" ? setExpandedRow(isExpanded ? null : student.id) : null}
                       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "scale(1.01)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = "scale(1)"; }}
-                    >
+                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = "scale(1)"; }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: "14px", fontWeight: "700", color: th.title, textShadow: darkMode ? th.titleShadow : "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {student.Nom} {student.Prenom}
@@ -337,12 +338,9 @@ export default function Dashboard() {
                           {statusConfig.icon}
                           <span style={{ fontSize: "11px", fontWeight: "700", color: statusConfig.color }}>{statusConfig.label}</span>
                         </div>
-                        {statut === "جزئي" && (
-                          <ChevronDown size={13} color={th.subtext} style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }} />
-                        )}
+                        {statut === "جزئي" && <ChevronDown size={13} color={th.subtext} style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }} />}
                       </div>
                     </div>
-
                     {isExpanded && statut === "جزئي" && (
                       <div style={{ ...th.inset, padding: "16px 18px", marginTop: "4px", display: "flex", alignItems: "center", gap: "12px", justifyContent: "space-between" }}>
                         <div style={{ flexShrink: 0 }}>
